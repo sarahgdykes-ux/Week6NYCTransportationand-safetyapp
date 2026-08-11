@@ -60,11 +60,11 @@ function buildFilterQuery(params: FetchParams) {
   if (params.borough) {
     clauses.push(`borough = '${params.borough.replace("'", "\\'")}'`);
   }
-  return clauses.length > 0 ? `$where=${clauses.join(" AND ")}` : "";
+  return clauses.join(" AND ");
 }
 
 export async function fetchCollisionRecords(params: FetchParams): Promise<FetchResult> {
-  const query = buildFilterQuery(params);
+  const whereClause = buildFilterQuery(params);
   const url = new URL(API_BASE);
   const selectFields = [
     "collision_id",
@@ -88,9 +88,8 @@ export async function fetchCollisionRecords(params: FetchParams): Promise<FetchR
   url.searchParams.set("$limit", DEFAULT_LIMIT.toString());
   url.searchParams.set("$order", "crash_date DESC, crash_time DESC");
 
-  if (query) {
-    const [key, value] = query.split("=");
-    url.searchParams.set(key, value);
+  if (whereClause) {
+    url.searchParams.set("$where", whereClause);
   }
 
   const response = await fetch(url.toString(), { cache: "no-store" });
@@ -155,6 +154,17 @@ export async function fetchCollisionRecords(params: FetchParams): Promise<FetchR
     });
     seenIds.add(item.collision_id);
   }
+
+  console.debug("NYC collision API returned records", {
+    count: records.length,
+    sample: records.slice(0, 5).map((record) => ({
+      collisionId: record.collisionId,
+      crashDate: record.crashDate,
+      borough: record.borough,
+      latitude: record.latitude,
+      longitude: record.longitude,
+    })),
+  });
 
   return {
     records,
