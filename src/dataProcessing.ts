@@ -69,7 +69,7 @@ export function buildLocationRiskSummary(
       if (filters.severity === "fatalities" && record.numberOfPersonsKilled === 0) return false;
       return true;
     })
-    .filter((record) => record.borough && record.locationLabel && !Number.isNaN(record.latitude) && !Number.isNaN(record.longitude));
+    .filter((record) => record.locationLabel && !Number.isNaN(record.latitude) && !Number.isNaN(record.longitude));
 
   const grouped = new Map<string, LocationRiskSummary>();
 

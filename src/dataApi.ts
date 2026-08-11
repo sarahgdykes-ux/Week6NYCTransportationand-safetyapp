@@ -1,5 +1,11 @@
 import { formatISO } from "date-fns";
 
+export type LocationField = {
+  latitude?: string;
+  longitude?: string;
+  human_address?: string;
+};
+
 export type RawCollisionRecord = {
   collision_id?: string;
   crash_date?: string;
@@ -7,7 +13,7 @@ export type RawCollisionRecord = {
   borough?: string;
   latitude?: string;
   longitude?: string;
-  location?: string;
+  location?: string | LocationField;
   on_street_name?: string;
   cross_street_name?: string;
   number_of_persons_injured?: string;
@@ -115,14 +121,19 @@ export async function fetchCollisionRecords(params: FetchParams): Promise<FetchR
       continue;
     }
 
-    const parsedDate = new Date(`${date}T${time}`);
+    const parsedDate = new Date(date.includes("T") ? date : `${date}T${time}`);
     if (Number.isNaN(parsedDate.getTime())) {
       invalidCount += 1;
       continue;
     }
 
-    const latitude = parseFloat(item.latitude ?? "");
-    const longitude = parseFloat(item.longitude ?? "");
+    let latitude = parseFloat(item.latitude ?? "");
+    let longitude = parseFloat(item.longitude ?? "");
+    if ((Number.isNaN(latitude) || Number.isNaN(longitude)) && typeof item.location === "object") {
+      latitude = parseFloat(item.location.latitude ?? "");
+      longitude = parseFloat(item.location.longitude ?? "");
+    }
+
     if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
       invalidCount += 1;
       continue;
@@ -147,7 +158,9 @@ export async function fetchCollisionRecords(params: FetchParams): Promise<FetchR
       borough: item.borough ? item.borough.trim() : null,
       latitude,
       longitude,
-      locationLabel: item.location?.trim() || buildStreetLabel(item),
+      locationLabel: typeof item.location === "string" && item.location.trim()
+        ? item.location.trim()
+        : buildStreetLabel(item),
       numberOfPersonsInjured: Number.isFinite(numInjured) ? numInjured : 0,
       numberOfPersonsKilled: Number.isFinite(numKilled) ? numKilled : 0,
       contributingFactors: factors,
