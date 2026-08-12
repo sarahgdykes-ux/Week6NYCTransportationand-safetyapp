@@ -1,9 +1,26 @@
 import type { LocationRiskSummary } from "./dataProcessing";
 
-export default function LocationDetails({ location }: { location: LocationRiskSummary }) {
+export default function LocationDetails({
+  location,
+  isInWatchlist,
+  onToggleWatchlist,
+  watchlistStatus,
+  onStatusChange,
+}: {
+  location: LocationRiskSummary;
+  isInWatchlist: boolean;
+  onToggleWatchlist: () => void;
+  watchlistStatus: "investigate" | "monitor" | "escalate";
+  onStatusChange: (status: "investigate" | "monitor" | "escalate") => void;
+}) {
   return (
     <section className="location-details">
-      <h2>Investigation summary</h2>
+      <div className="detail-header-row">
+        <h2>Investigation summary</h2>
+        <button type="button" className="watchlist-button" onClick={onToggleWatchlist}>
+          {isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        </button>
+      </div>
       <div className="detail-row">
         <span>Location</span>
         <strong>{location.locationLabel}</strong>
@@ -15,6 +32,14 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
       <div className="detail-row">
         <span>Priority status</span>
         <strong>{location.urgencyLabel}</strong>
+      </div>
+      <div className="detail-row">
+        <span>Watchlist status</span>
+        <select value={watchlistStatus} onChange={(event) => onStatusChange(event.target.value as "investigate" | "monitor" | "escalate")}>
+          <option value="investigate">Investigate</option>
+          <option value="monitor">Monitor</option>
+          <option value="escalate">Escalate</option>
+        </select>
       </div>
       <div className="detail-row">
         <span>Crash count</span>

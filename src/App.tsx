@@ -27,6 +27,7 @@ function App() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cleanup, setCleanup] = useState<CleanupResult | null>(null);
+  const [watchlist, setWatchlist] = useState<Record<string, "investigate" | "monitor" | "escalate">>({});
 
   const loadRecords = async () => {
     setStatus("loading");
@@ -96,6 +97,30 @@ function App() {
     () => locationSummaries.slice(0, 5),
     [locationSummaries]
   );
+
+  const watchlistLocations = useMemo(
+    () => locationSummaries.filter((location) => watchlist[location.locationKey]),
+    [locationSummaries, watchlist]
+  );
+
+  const toggleWatchlistLocation = (location: LocationRiskSummary) => {
+    setWatchlist((current) => {
+      const next = { ...current };
+      if (next[location.locationKey]) {
+        delete next[location.locationKey];
+        return next;
+      }
+      next[location.locationKey] = "investigate";
+      return next;
+    });
+  };
+
+  const updateWatchlistStatus = (locationKey: string, nextStatus: "investigate" | "monitor" | "escalate") => {
+    setWatchlist((current) => ({
+      ...current,
+      [locationKey]: nextStatus,
+    }));
+  };
 
   const canShowMap = status === "success" && locationSummaries.length > 0;
 
@@ -186,6 +211,36 @@ function App() {
                     </div>
                   </section>
 
+                  <section className="watchlist-panel">
+                    <div className="watchlist-header">
+                      <h2>Watchlist</h2>
+                      <span>{watchlistLocations.length} tracked</span>
+                    </div>
+                    {watchlistLocations.length === 0 ? (
+                      <p className="section-copy">Add a hotspot to keep it in your investigation queue.</p>
+                    ) : (
+                      <div className="watchlist-items">
+                        {watchlistLocations.map((location) => (
+                          <div key={location.locationKey} className="watchlist-item">
+                            <button type="button" className="watchlist-name" onClick={() => setSelectedLocation(location)}>
+                              {location.locationLabel}
+                            </button>
+                            <select
+                              value={watchlist[location.locationKey]}
+                              onChange={(event) =>
+                                updateWatchlistStatus(location.locationKey, event.target.value as "investigate" | "monitor" | "escalate")
+                              }
+                            >
+                              <option value="investigate">Investigate</option>
+                              <option value="monitor">Monitor</option>
+                              <option value="escalate">Escalate</option>
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
                   <section className="location-list">
                     <h2>Top crash locations</h2>
                     <p className="section-copy">
@@ -245,7 +300,13 @@ function App() {
           )}
 
           {status === "success" && selectedLocation && (
-            <LocationDetails location={selectedLocation} />
+            <LocationDetails
+              location={selectedLocation}
+              isInWatchlist={Boolean(watchlist[selectedLocation.locationKey])}
+              onToggleWatchlist={() => toggleWatchlistLocation(selectedLocation)}
+              watchlistStatus={watchlist[selectedLocation.locationKey] ?? "investigate"}
+              onStatusChange={(nextStatus) => updateWatchlistStatus(selectedLocation.locationKey, nextStatus)}
+            />
           )}
         </section>
       </main>
