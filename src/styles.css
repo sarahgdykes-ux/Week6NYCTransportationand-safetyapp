@@ -150,6 +150,67 @@ select {
   margin-top: 0;
 }
 
+.section-copy {
+  margin-top: 0;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.priority-queue {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.05);
+}
+
+.priority-queue h2 {
+  margin-top: 0;
+}
+
+.queue-list {
+  display: grid;
+  gap: 12px;
+}
+
+.queue-item {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f8fafc, #eef4ff);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.queue-item:hover,
+.queue-item.selected {
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+.queue-item p {
+  margin: 10px 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.queue-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.queue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
 .location-items {
   padding: 0;
   margin: 0;

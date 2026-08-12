@@ -3,7 +3,7 @@ import type { LocationRiskSummary } from "./dataProcessing";
 export default function LocationDetails({ location }: { location: LocationRiskSummary }) {
   return (
     <section className="location-details">
-      <h2>Selected location</h2>
+      <h2>Investigation summary</h2>
       <div className="detail-row">
         <span>Location</span>
         <strong>{location.locationLabel}</strong>
@@ -11,6 +11,10 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
       <div className="detail-row">
         <span>Borough</span>
         <strong>{location.borough}</strong>
+      </div>
+      <div className="detail-row">
+        <span>Priority status</span>
+        <strong>{location.urgencyLabel}</strong>
       </div>
       <div className="detail-row">
         <span>Crash count</span>
@@ -28,10 +32,26 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
         <span>Prioritization score</span>
         <strong>{Math.round(location.prioritizationScore)}</strong>
       </div>
+
+      <div className="detail-row detail-factors">
+        <span>Risk narrative</span>
+        <strong>{location.riskNarrative}</strong>
+      </div>
+
       <div className="detail-row detail-factors">
         <span>Common contributing factors</span>
         <strong>{location.topContributingFactors.join(", ") || "Not available"}</strong>
       </div>
+
+      <div className="detail-row detail-patterns">
+        <span>Investigation signals</span>
+        <ul>
+          {location.investigationSignals.map((signal) => (
+            <li key={signal}>{signal}</li>
+          ))}
+        </ul>
+      </div>
+
       <div className="detail-row detail-patterns">
         <span>Recent crash pattern</span>
         <ul>
@@ -40,6 +60,12 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
           ))}
         </ul>
       </div>
+
+      <div className="detail-row detail-factors">
+        <span>Recommended action</span>
+        <strong>{location.actionRecommendation}</strong>
+      </div>
+
       <p className="method-note">
         The MVP prioritization score combines crash frequency and severity, with fatalities weighted higher than injuries.
       </p>

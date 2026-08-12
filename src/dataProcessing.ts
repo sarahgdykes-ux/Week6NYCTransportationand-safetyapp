@@ -27,8 +27,12 @@ export type LocationRiskSummary = {
   frequencyScore: number;
   prioritizationScore: number;
   priorityCategory: "high" | "medium" | "lower";
+  urgencyLabel: "Immediate" | "Near-term" | "Monitor";
   topContributingFactors: string[];
   datePatterns: string[];
+  investigationSignals: string[];
+  riskNarrative: string;
+  actionRecommendation: string;
   rank: number;
 };
 
@@ -91,8 +95,12 @@ export function buildLocationRiskSummary(
         frequencyScore: 1,
         prioritizationScore: 0,
         priorityCategory: "lower",
+        urgencyLabel: "Monitor",
         topContributingFactors: contributingFactors,
         datePatterns: [record.crashDate],
+        investigationSignals: [],
+        riskNarrative: "",
+        actionRecommendation: "Monitor pattern and review nearby crash history.",
         rank: 0,
       });
     } else {
@@ -118,13 +126,38 @@ export function buildLocationRiskSummary(
       normalizedSeverity * (PRIORITY_SCORE_WEIGHTS.injuries + PRIORITY_SCORE_WEIGHTS.fatalities);
     if (item.prioritizationScore >= CATEGORY_THRESHOLDS.high) {
       item.priorityCategory = "high";
+      item.urgencyLabel = "Immediate";
     } else if (item.prioritizationScore >= CATEGORY_THRESHOLDS.medium) {
       item.priorityCategory = "medium";
+      item.urgencyLabel = "Near-term";
     } else {
       item.priorityCategory = "lower";
+      item.urgencyLabel = "Monitor";
     }
     item.topContributingFactors = Array.from(new Set(item.topContributingFactors)).slice(0, 3);
     item.datePatterns = summarizeDatePatterns(item.datePatterns);
+
+    const primaryFactor = item.topContributingFactors[0] ?? "No dominant factor identified";
+    const peakPattern = item.datePatterns[0] ?? "No recurring monthly pattern";
+    const severitySignal = item.totalFatalities > 0 ? "fatality risk" : item.totalInjuries > 0 ? "injury risk" : "crash concentration";
+
+    item.investigationSignals = [
+      `${item.totalCrashes} recorded crashes`,
+      `${item.totalInjuries} injuries`,
+      `${item.totalFatalities} fatalities`,
+      `Primary factor: ${primaryFactor}`,
+      `Peak pattern: ${peakPattern}`,
+    ];
+
+    item.riskNarrative = `${item.locationLabel} has ${item.totalCrashes} crashes and ${item.totalInjuries + item.totalFatalities} severe outcomes in the selected period. The most repeated pattern is ${primaryFactor.toLowerCase()}, with the strongest concentration in ${peakPattern}.`;
+
+    if (item.priorityCategory === "high") {
+      item.actionRecommendation = "Prioritize an engineering and enforcement review immediately. Check signal timing, visibility, crossing conditions, and speed management near this location.";
+    } else if (item.priorityCategory === "medium") {
+      item.actionRecommendation = "Schedule a targeted safety study and review whether control devices or design changes could reduce repeat injury crashes.";
+    } else {
+      item.actionRecommendation = "Continue monitoring this location and compare against nearby corridors for repeat patterns before allocating a larger intervention.";
+    }
   });
 
   summaries.sort((a, b) => b.prioritizationScore - a.prioritizationScore);

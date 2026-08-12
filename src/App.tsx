@@ -92,6 +92,11 @@ function App() {
     [locationSummaries]
   );
 
+  const priorityQueue = useMemo(
+    () => locationSummaries.slice(0, 5),
+    [locationSummaries]
+  );
+
   const canShowMap = status === "success" && locationSummaries.length > 0;
 
   return (
@@ -143,38 +148,69 @@ function App() {
                   description="Try expanding the date range or removing borough filters."
                 />
               ) : (
-                <section className="location-list">
-                  <h2>Top crash locations</h2>
-                  <p className="section-copy">
-                    Locations are ranked using an MVP prioritization score that balances crash frequency
-                    with injury and fatality severity.
-                  </p>
-                  <ol className="location-items">
-                    {locationSummaries.slice(0, 8).map((location) => (
-                      <li
-                        key={location.locationKey}
-                        className={
-                          location.locationKey === selectedLocation?.locationKey ? "location-item selected" : "location-item"
-                        }
-                        onClick={() => setSelectedLocation(location)}
-                      >
-                        <div>
-                          <span className="location-rank">#{location.rank}</span>
-                          <strong>{location.locationLabel}</strong>
-                          <span className="location-borough">{location.borough}</span>
-                        </div>
-                        <div className="location-metrics">
-                          <span>{location.totalCrashes} crashes</span>
-                          <span>{location.totalInjuries} injuries</span>
-                          <span>{location.totalFatalities} fatalities</span>
-                        </div>
-                        <span className={`risk-pill ${location.priorityCategory}`}>
-                          {location.priorityCategory === "high" ? "High priority" : location.priorityCategory === "medium" ? "Medium priority" : "Lower priority"}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
+                <>
+                  <section className="priority-queue">
+                    <h2>Priority investigation queue</h2>
+                    <div className="queue-list">
+                      {priorityQueue.map((location) => (
+                        <button
+                          key={location.locationKey}
+                          type="button"
+                          className={
+                            location.locationKey === selectedLocation?.locationKey ? "queue-item selected" : "queue-item"
+                          }
+                          onClick={() => setSelectedLocation(location)}
+                        >
+                          <div className="queue-header">
+                            <span className="location-rank">#{location.rank}</span>
+                            <strong>{location.locationLabel}</strong>
+                          </div>
+                          <p>{location.actionRecommendation}</p>
+                          <div className="queue-meta">
+                            <span className={`risk-pill ${location.priorityCategory}`}>
+                              {location.urgencyLabel}
+                            </span>
+                            <span>{location.totalCrashes} crashes</span>
+                            <span>{location.totalInjuries} injuries</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="location-list">
+                    <h2>Top crash locations</h2>
+                    <p className="section-copy">
+                      Locations are ranked using an MVP prioritization score that balances crash frequency
+                      with injury and fatality severity.
+                    </p>
+                    <ol className="location-items">
+                      {locationSummaries.slice(0, 8).map((location) => (
+                        <li
+                          key={location.locationKey}
+                          className={
+                            location.locationKey === selectedLocation?.locationKey ? "location-item selected" : "location-item"
+                          }
+                          onClick={() => setSelectedLocation(location)}
+                        >
+                          <div>
+                            <span className="location-rank">#{location.rank}</span>
+                            <strong>{location.locationLabel}</strong>
+                            <span className="location-borough">{location.borough}</span>
+                          </div>
+                          <div className="location-metrics">
+                            <span>{location.totalCrashes} crashes</span>
+                            <span>{location.totalInjuries} injuries</span>
+                            <span>{location.totalFatalities} fatalities</span>
+                          </div>
+                          <span className={`risk-pill ${location.priorityCategory}`}>
+                            {location.priorityCategory === "high" ? "High priority" : location.priorityCategory === "medium" ? "Medium priority" : "Lower priority"}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                </>
               )}
             </>
           )}
