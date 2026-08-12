@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildLocationRiskSummary, defaultFilters } from "./dataProcessing";
+import { buildLocationRiskSummary, buildOperationalBrief, defaultFilters } from "./dataProcessing";
 
 const sampleRecords = [
   {
@@ -49,4 +49,13 @@ test("buildLocationRiskSummary identifies intervention drivers for a hotspot", (
   assert.ok(location);
   assert.ok(location.riskDrivers.length >= 2);
   assert.match(location.recommendedIntervention.toLowerCase(), /signal|crossing|speed|enforcement|pedestrian|driver/i);
+});
+
+test("buildOperationalBrief creates a concise action summary for top hotspots", () => {
+  const result = buildLocationRiskSummary(sampleRecords, defaultFilters);
+  const brief = buildOperationalBrief(result.locationSummaries);
+
+  assert.ok(brief.headline.toLowerCase().includes("priority") || brief.keyTakeaways.length > 0);
+  assert.ok(brief.recommendedActions.length >= 1);
+  assert.match(brief.recommendedActions[0].toLowerCase(), /atlantic|priority|intervention|review/i);
 });

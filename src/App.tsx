@@ -6,6 +6,7 @@ import {
 } from "./dataApi";
 import {
   buildLocationRiskSummary,
+  buildOperationalBrief,
   type LocationRiskSummary,
   type RiskSummaryFilters,
   type CleanupResult,
@@ -124,9 +125,23 @@ function App() {
     [locationSummaries]
   );
 
+  const operationalBrief = useMemo(
+    () => buildOperationalBrief(locationSummaries.slice(0, 3)),
+    [locationSummaries]
+  );
+
   const watchlistLocations = useMemo(
     () => locationSummaries.filter((location) => watchlist[location.locationKey]),
     [locationSummaries, watchlist]
+  );
+
+  const watchlistCounts = useMemo(
+    () => ({
+      investigate: Object.values(watchlist).filter((status) => status === "investigate").length,
+      monitor: Object.values(watchlist).filter((status) => status === "monitor").length,
+      escalate: Object.values(watchlist).filter((status) => status === "escalate").length,
+    }),
+    [watchlist]
   );
 
   useEffect(() => {
@@ -154,6 +169,10 @@ function App() {
       ...current,
       [locationKey]: nextStatus,
     }));
+  };
+
+  const clearWatchlist = () => {
+    setWatchlist({});
   };
 
   const canShowMap = status === "success" && locationSummaries.length > 0;
@@ -208,6 +227,23 @@ function App() {
                 />
               ) : (
                 <>
+                  <section className="brief-panel">
+                    <h2>Operational briefing</h2>
+                    <p className="brief-headline">{operationalBrief.headline}</p>
+                    <ul className="brief-takeaways">
+                      {operationalBrief.keyTakeaways.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                    <div className="brief-actions">
+                      {operationalBrief.recommendedActions.map((action) => (
+                        <div key={action} className="brief-action-item">
+                          {action}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
                   <section className="priority-queue">
                     <h2>Priority investigation queue</h2>
                     <div className="queue-list">
@@ -248,7 +284,17 @@ function App() {
                   <section className="watchlist-panel">
                     <div className="watchlist-header">
                       <h2>Watchlist</h2>
-                      <span>{watchlistLocations.length} tracked</span>
+                      <div className="watchlist-actions">
+                        <span>{watchlistLocations.length} tracked</span>
+                        <button type="button" className="clear-watchlist-button" onClick={clearWatchlist}>
+                          Clear all
+                        </button>
+                      </div>
+                    </div>
+                    <div className="status-summary">
+                      <span className="status-chip investigate">{watchlistCounts.investigate} investigate</span>
+                      <span className="status-chip monitor">{watchlistCounts.monitor} monitor</span>
+                      <span className="status-chip escalate">{watchlistCounts.escalate} escalate</span>
                     </div>
                     {watchlistLocations.length === 0 ? (
                       <p className="section-copy">Add a hotspot to keep it in your investigation queue.</p>

@@ -46,6 +46,12 @@ export type CleanupResult = {
   invalidCount: number;
 };
 
+export type OperationalBrief = {
+  headline: string;
+  keyTakeaways: string[];
+  recommendedActions: string[];
+};
+
 const PRIORITY_SCORE_WEIGHTS = {
   frequency: 0.5,
   injuries: 0.3,
@@ -214,6 +220,41 @@ export function buildLocationRiskSummary(
   return {
     locationSummaries: summaries,
     filteredRecords: cleaned,
+  };
+}
+
+export function buildOperationalBrief(locationSummaries: LocationRiskSummary[]): OperationalBrief {
+  if (locationSummaries.length === 0) {
+    return {
+      headline: "No active hotspots in the current review window.",
+      keyTakeaways: [
+        "No location currently meets the urgency threshold for immediate action.",
+      ],
+      recommendedActions: [
+        "Expand the date range or review a wider corridor before prioritizing a field response.",
+      ],
+    };
+  }
+
+  const topLocations = locationSummaries.slice(0, 3);
+  const highestPriority = topLocations[0];
+  const criticalLocations = topLocations.filter((location) => location.priorityCategory === "high").length;
+  const sharedDrivers = Array.from(
+    new Set(topLocations.flatMap((location) => location.riskDrivers))
+  ).slice(0, 3);
+
+  return {
+    headline: `${highestPriority.locationLabel} is the top priority hotspot in this review window.`,
+    keyTakeaways: [
+      `${highestPriority.locationLabel} ranks #1 with ${highestPriority.totalCrashes} recorded crashes and ${highestPriority.totalFatalities} fatalities in the selected period.`,
+      `${criticalLocations} of the top hotspots are in the high-priority band, indicating a concentrated risk pattern for immediate review.`,
+      sharedDrivers.length > 0
+        ? `Common drivers across the priority set include ${sharedDrivers.join(", ")}.`
+        : "The current hotspots share a repeat crash pattern but do not show a single dominant driver yet.",
+    ],
+    recommendedActions: topLocations.map(
+      (location) => `${location.locationLabel}: ${location.recommendedIntervention}`
+    ),
   };
 }
 
