@@ -189,6 +189,15 @@ select {
   transform: translateY(-1px);
 }
 
+.queue-action-label {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1d4ed8;
+}
+
 .queue-item p {
   margin: 10px 0;
   color: #374151;
@@ -322,6 +331,46 @@ select {
 
 .detail-row strong {
   font-size: 1rem;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.detail-tag,
+.empty-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.empty-tag {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: #e5e7eb;
+}
+
+.detail-callout {
+  border-left: 4px solid #93c5fd;
+  padding-left: 12px;
+  background: #f8fbff;
+  border-radius: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.detail-callout.emphasis {
+  border-left-color: #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .detail-factors strong,

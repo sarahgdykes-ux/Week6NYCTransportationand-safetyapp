@@ -52,7 +52,17 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
 
       <div className="detail-row detail-factors">
         <span>Risk drivers</span>
-        <strong>{location.riskDrivers.join(", ") || "Not available"}</strong>
+        <div className="tag-row">
+          {location.riskDrivers.length > 0 ? (
+            location.riskDrivers.map((driver) => (
+              <span key={driver} className="detail-tag">
+                {driver}
+              </span>
+            ))
+          ) : (
+            <span className="empty-tag">Not available</span>
+          )}
+        </div>
       </div>
 
       <div className="detail-row detail-factors">
@@ -78,12 +88,12 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
         </ul>
       </div>
 
-      <div className="detail-row detail-factors">
+      <div className="detail-row detail-callout">
         <span>Recommended action</span>
         <strong>{location.actionRecommendation}</strong>
       </div>
 
-      <div className="detail-row detail-factors">
+      <div className="detail-row detail-callout emphasis">
         <span>Recommended intervention</span>
         <strong>{location.recommendedIntervention}</strong>
       </div>

@@ -165,13 +165,21 @@ function App() {
                             <span className="location-rank">#{location.rank}</span>
                             <strong>{location.locationLabel}</strong>
                           </div>
-                          <p>{location.actionRecommendation}</p>
+                          <div className="queue-action-label">Recommended focus</div>
+                          <p>{location.recommendedIntervention}</p>
                           <div className="queue-meta">
                             <span className={`risk-pill ${location.priorityCategory}`}>
                               {location.urgencyLabel}
                             </span>
                             <span>{location.totalCrashes} crashes</span>
                             <span>{location.totalInjuries} injuries</span>
+                          </div>
+                          <div className="tag-row">
+                            {location.riskDrivers.map((driver) => (
+                              <span key={driver} className="detail-tag">
+                                {driver}
+                              </span>
+                            ))}
                           </div>
                         </button>
                       ))}
