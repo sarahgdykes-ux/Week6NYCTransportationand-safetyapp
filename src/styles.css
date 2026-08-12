@@ -253,6 +253,7 @@ select {
 
 .brief-panel,
 .action-plan-panel,
+.dispatch-panel,
 .priority-queue {
   background: white;
   border-radius: 18px;
@@ -262,6 +263,7 @@ select {
 
 .brief-panel h2,
 .action-plan-panel h2,
+.dispatch-panel h2,
 .priority-queue h2 {
   margin-top: 0;
 }
@@ -294,6 +296,7 @@ select {
   line-height: 1.5;
 }
 
+.dispatch-headline,
 .action-plan-headline {
   margin: 0 0 12px;
   font-size: 1.05rem;
@@ -301,11 +304,13 @@ select {
   color: #111827;
 }
 
+.dispatch-list,
 .action-plan-list {
   display: grid;
   gap: 12px;
 }
 
+.dispatch-item,
 .action-plan-item {
   border: 1px solid #e5e7eb;
   border-radius: 14px;
@@ -313,6 +318,7 @@ select {
   padding: 12px 14px;
 }
 
+.dispatch-row,
 .action-plan-top {
   display: flex;
   align-items: center;
@@ -321,6 +327,15 @@ select {
   margin-bottom: 8px;
 }
 
+.dispatch-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #4b5563;
+  font-size: 0.82rem;
+}
+
+.dispatch-item p,
 .action-plan-item p {
   margin: 0;
   line-height: 1.5;

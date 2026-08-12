@@ -6,6 +6,7 @@ import {
 } from "./dataApi";
 import {
   buildActionPlan,
+  buildDispatchBoard,
   buildLocationRiskSummary,
   buildOperationalBrief,
   type LocationRiskSummary,
@@ -136,6 +137,11 @@ function App() {
     [locationSummaries]
   );
 
+  const dispatchBoard = useMemo(
+    () => buildDispatchBoard(locationSummaries.slice(0, 3)),
+    [locationSummaries]
+  );
+
   const watchlistLocations = useMemo(
     () => locationSummaries.filter((location) => watchlist[location.locationKey]),
     [locationSummaries, watchlist]
@@ -263,6 +269,27 @@ function App() {
                             </span>
                           </div>
                           <p>{item.task}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="dispatch-panel">
+                    <h2>Dispatch board</h2>
+                    <p className="dispatch-headline">{dispatchBoard.headline}</p>
+                    <div className="dispatch-list">
+                      {dispatchBoard.assignments.map((assignment) => (
+                        <div key={assignment.location} className="dispatch-item">
+                          <div className="dispatch-row">
+                            <strong>{assignment.location}</strong>
+                            <span className={`risk-pill ${assignment.priority === "Immediate" ? "high" : assignment.priority === "Near-term" ? "medium" : "lower"}`}>
+                              {assignment.priority}
+                            </span>
+                          </div>
+                          <div className="dispatch-meta">
+                            <span>{assignment.crew}</span>
+                            <span>{assignment.window}</span>
+                          </div>
                         </div>
                       ))}
                     </div>

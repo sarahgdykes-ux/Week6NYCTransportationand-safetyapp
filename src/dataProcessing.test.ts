@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildActionPlan, buildLocationRiskSummary, buildOperationalBrief, defaultFilters } from "./dataProcessing";
+import { buildActionPlan, buildDispatchBoard, buildLocationRiskSummary, buildOperationalBrief, defaultFilters } from "./dataProcessing";
 
 const sampleRecords = [
   {
@@ -68,4 +68,14 @@ test("buildActionPlan creates concrete field actions for the top locations", () 
   assert.ok(plan.actions.length >= 1);
   assert.ok(plan.actions[0].task.length > 0);
   assert.ok(plan.actions[0].urgency === "Immediate" || plan.actions[0].urgency === "Near-term" || plan.actions[0].urgency === "Monitor");
+});
+
+test("buildDispatchBoard creates a field dispatch list for team planning", () => {
+  const result = buildLocationRiskSummary(sampleRecords, defaultFilters);
+  const board = buildDispatchBoard(result.locationSummaries); 
+
+  assert.ok(board.headline.toLowerCase().includes("dispatch") || board.headline.toLowerCase().includes("team"));
+  assert.ok(board.assignments.length >= 1);
+  assert.ok(board.assignments[0].crew.length > 0);
+  assert.ok(board.assignments[0].window.length > 0);
 });

@@ -63,6 +63,18 @@ export type ActionPlan = {
   actions: ActionPlanAction[];
 };
 
+export type DispatchAssignment = {
+  location: string;
+  crew: string;
+  window: string;
+  priority: "Immediate" | "Near-term" | "Monitor";
+};
+
+export type DispatchBoard = {
+  headline: string;
+  assignments: DispatchAssignment[];
+};
+
 const PRIORITY_SCORE_WEIGHTS = {
   frequency: 0.5,
   injuries: 0.3,
@@ -298,6 +310,35 @@ export function buildActionPlan(locationSummaries: LocationRiskSummary[]): Actio
         index === 0
           ? `Conduct a rapid field review of ${location.locationLabel} and verify signal timing, visibility, and compliance before the next operating period.`
           : `Review ${location.locationLabel} for ${location.recommendedIntervention.toLowerCase()} and confirm whether a corridor-level intervention is needed.`,
+    })),
+  };
+}
+
+export function buildDispatchBoard(locationSummaries: LocationRiskSummary[]): DispatchBoard {
+  if (locationSummaries.length === 0) {
+    return {
+      headline: "Dispatch board is clear for the current review period.",
+      assignments: [
+        {
+          location: "No active hotspot assignments",
+          crew: "Operations desk",
+          window: "Review queue",
+          priority: "Monitor",
+        },
+      ],
+    };
+  }
+
+  const topLocations = locationSummaries.slice(0, 3);
+  const crewNames = ["North Corridor Team", "Signal Ops Team", "Safety Review Unit"];
+
+  return {
+    headline: "Dispatch board for the next field review cycle",
+    assignments: topLocations.map((location, index) => ({
+      location: location.locationLabel,
+      crew: crewNames[index % crewNames.length],
+      window: index === 0 ? "Today / next shift" : index === 1 ? "This week" : "Next 7 days",
+      priority: location.urgencyLabel,
     })),
   };
 }
