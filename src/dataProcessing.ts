@@ -33,6 +33,9 @@ export type LocationRiskSummary = {
   investigationSignals: string[];
   riskNarrative: string;
   actionRecommendation: string;
+  peerComparison: string;
+  boroughAverageCrashes: number;
+  corridorContext: string;
   rank: number;
 };
 
@@ -101,6 +104,9 @@ export function buildLocationRiskSummary(
         investigationSignals: [],
         riskNarrative: "",
         actionRecommendation: "Monitor pattern and review nearby crash history.",
+        peerComparison: "",
+        boroughAverageCrashes: 0,
+        corridorContext: "",
         rank: 0,
       });
     } else {
@@ -117,6 +123,20 @@ export function buildLocationRiskSummary(
   const summaries = Array.from(grouped.values());
   const maxCrashes = Math.max(...summaries.map((item) => item.totalCrashes), 1);
   const maxSeverity = Math.max(...summaries.map((item) => item.severityScore), 1);
+
+  const boroughGroups = new Map<string, LocationRiskSummary[]>();
+  for (const summary of summaries) {
+    const key = summary.borough;
+    const list = boroughGroups.get(key) ?? [];
+    list.push(summary);
+    boroughGroups.set(key, list);
+  }
+
+  const corridorGroups = new Map<string, number>();
+  for (const summary of summaries) {
+    const corridorKey = `${summary.borough}::${deriveCorridorKey(summary.locationLabel)}`;
+    corridorGroups.set(corridorKey, (corridorGroups.get(corridorKey) ?? 0) + 1);
+  }
 
   summaries.forEach((item) => {
     const normalizedFrequency = (item.totalCrashes / maxCrashes) * 100;
@@ -139,17 +159,36 @@ export function buildLocationRiskSummary(
 
     const primaryFactor = item.topContributingFactors[0] ?? "No dominant factor identified";
     const peakPattern = item.datePatterns[0] ?? "No recurring monthly pattern";
-    const severitySignal = item.totalFatalities > 0 ? "fatality risk" : item.totalInjuries > 0 ? "injury risk" : "crash concentration";
+    const boroughAverage = boroughGroups.get(item.borough)?.reduce((sum, location) => sum + location.totalCrashes, 0) ?? 0;
+    const boroughLocationCount = boroughGroups.get(item.borough)?.length ?? 1;
+    item.boroughAverageCrashes = boroughLocationCount > 0 ? boroughAverage / boroughLocationCount : 0;
+
+    const aboveAverage = item.totalCrashes - item.boroughAverageCrashes;
+    item.peerComparison =
+      aboveAverage > 0
+        ? `${aboveAverage.toFixed(1)} crashes above the borough average`
+        : aboveAverage < 0
+        ? `${Math.abs(aboveAverage).toFixed(1)} crashes below the borough average`
+        : "In line with the borough average";
+
+    const corridorKey = `${item.borough}::${deriveCorridorKey(item.locationLabel)}`;
+    const corridorCount = corridorGroups.get(corridorKey) ?? 1;
+    item.corridorContext =
+      corridorCount > 1
+        ? `Shared corridor risk: ${corridorCount} locations in this corridor exceed the usual local pattern.`
+        : "Isolated hotspot: this site is not clustering with nearby corridor locations.";
 
     item.investigationSignals = [
       `${item.totalCrashes} recorded crashes`,
       `${item.totalInjuries} injuries`,
       `${item.totalFatalities} fatalities`,
+      `Peer benchmark: ${item.peerComparison}`,
       `Primary factor: ${primaryFactor}`,
       `Peak pattern: ${peakPattern}`,
+      `Corridor context: ${item.corridorContext}`,
     ];
 
-    item.riskNarrative = `${item.locationLabel} has ${item.totalCrashes} crashes and ${item.totalInjuries + item.totalFatalities} severe outcomes in the selected period. The most repeated pattern is ${primaryFactor.toLowerCase()}, with the strongest concentration in ${peakPattern}.`;
+    item.riskNarrative = `${item.locationLabel} has ${item.totalCrashes} crashes and ${item.totalInjuries + item.totalFatalities} severe outcomes in the selected period. It sits ${item.peerComparison.toLowerCase()} and ${item.corridorContext.toLowerCase()}. The most repeated pattern is ${primaryFactor.toLowerCase()}, with the strongest concentration in ${peakPattern}.`;
 
     if (item.priorityCategory === "high") {
       item.actionRecommendation = "Prioritize an engineering and enforcement review immediately. Check signal timing, visibility, crossing conditions, and speed management near this location.";
@@ -181,4 +220,18 @@ function summarizeDatePatterns(dates: string[]) {
 
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   return sorted.slice(0, 2).map(([month, count]) => `${month}: ${count} crashes`);
+}
+
+function deriveCorridorKey(locationLabel: string) {
+  const cleaned = locationLabel
+    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/\s*&\s*/g, " ")
+    .trim();
+
+  const segments = cleaned.split(/\s+/);
+  if (segments.length <= 2) {
+    return cleaned.toLowerCase();
+  }
+
+  return segments.slice(0, 2).join(" ").toLowerCase();
 }

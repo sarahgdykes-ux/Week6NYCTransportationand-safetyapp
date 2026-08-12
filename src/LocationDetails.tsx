@@ -32,6 +32,18 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
         <span>Prioritization score</span>
         <strong>{Math.round(location.prioritizationScore)}</strong>
       </div>
+      <div className="detail-row">
+        <span>Peer benchmark</span>
+        <strong>{location.peerComparison}</strong>
+      </div>
+      <div className="detail-row">
+        <span>Borough average</span>
+        <strong>{location.boroughAverageCrashes.toFixed(1)} crashes/location</strong>
+      </div>
+      <div className="detail-row">
+        <span>Corridor context</span>
+        <strong>{location.corridorContext}</strong>
+      </div>
 
       <div className="detail-row detail-factors">
         <span>Risk narrative</span>
