@@ -52,6 +52,17 @@ export type OperationalBrief = {
   recommendedActions: string[];
 };
 
+export type ActionPlanAction = {
+  location: string;
+  urgency: "Immediate" | "Near-term" | "Monitor";
+  task: string;
+};
+
+export type ActionPlan = {
+  headline: string;
+  actions: ActionPlanAction[];
+};
+
 const PRIORITY_SCORE_WEIGHTS = {
   frequency: 0.5,
   injuries: 0.3,
@@ -255,6 +266,39 @@ export function buildOperationalBrief(locationSummaries: LocationRiskSummary[]):
     recommendedActions: topLocations.map(
       (location) => `${location.locationLabel}: ${location.recommendedIntervention}`
     ),
+  };
+}
+
+export function buildActionPlan(locationSummaries: LocationRiskSummary[]): ActionPlan {
+  if (locationSummaries.length === 0) {
+    return {
+      headline: "No field response required for the current review window.",
+      actions: [
+        {
+          location: "No active hotspots",
+          urgency: "Monitor",
+          task: "Expand the date range or review a wider corridor before assigning a field response.",
+        },
+      ],
+    };
+  }
+
+  const topLocations = locationSummaries.slice(0, 3);
+  const headline =
+    topLocations.length === 1
+      ? `Field response plan for ${topLocations[0].locationLabel}`
+      : `Field response plan for ${topLocations.length} priority hotspots`;
+
+  return {
+    headline,
+    actions: topLocations.map((location, index) => ({
+      location: location.locationLabel,
+      urgency: location.urgencyLabel,
+      task:
+        index === 0
+          ? `Conduct a rapid field review of ${location.locationLabel} and verify signal timing, visibility, and compliance before the next operating period.`
+          : `Review ${location.locationLabel} for ${location.recommendedIntervention.toLowerCase()} and confirm whether a corridor-level intervention is needed.`,
+    })),
   };
 }
 

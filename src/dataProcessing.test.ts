@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildLocationRiskSummary, buildOperationalBrief, defaultFilters } from "./dataProcessing";
+import { buildActionPlan, buildLocationRiskSummary, buildOperationalBrief, defaultFilters } from "./dataProcessing";
 
 const sampleRecords = [
   {
@@ -58,4 +58,14 @@ test("buildOperationalBrief creates a concise action summary for top hotspots", 
   assert.ok(brief.headline.toLowerCase().includes("priority") || brief.keyTakeaways.length > 0);
   assert.ok(brief.recommendedActions.length >= 1);
   assert.match(brief.recommendedActions[0].toLowerCase(), /atlantic|priority|intervention|review/i);
+});
+
+test("buildActionPlan creates concrete field actions for the top locations", () => {
+  const result = buildLocationRiskSummary(sampleRecords, defaultFilters);
+  const plan = buildActionPlan(result.locationSummaries);
+
+  assert.ok(plan.headline.toLowerCase().includes("field") || plan.headline.toLowerCase().includes("response"));
+  assert.ok(plan.actions.length >= 1);
+  assert.ok(plan.actions[0].task.length > 0);
+  assert.ok(plan.actions[0].urgency === "Immediate" || plan.actions[0].urgency === "Near-term" || plan.actions[0].urgency === "Monitor");
 });

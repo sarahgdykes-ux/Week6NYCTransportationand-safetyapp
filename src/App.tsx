@@ -5,6 +5,7 @@ import {
   type CollisionRecord,
 } from "./dataApi";
 import {
+  buildActionPlan,
   buildLocationRiskSummary,
   buildOperationalBrief,
   type LocationRiskSummary,
@@ -130,6 +131,11 @@ function App() {
     [locationSummaries]
   );
 
+  const actionPlan = useMemo(
+    () => buildActionPlan(locationSummaries.slice(0, 3)),
+    [locationSummaries]
+  );
+
   const watchlistLocations = useMemo(
     () => locationSummaries.filter((location) => watchlist[location.locationKey]),
     [locationSummaries, watchlist]
@@ -239,6 +245,24 @@ function App() {
                       {operationalBrief.recommendedActions.map((action) => (
                         <div key={action} className="brief-action-item">
                           {action}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="action-plan-panel">
+                    <h2>Field action plan</h2>
+                    <p className="action-plan-headline">{actionPlan.headline}</p>
+                    <div className="action-plan-list">
+                      {actionPlan.actions.map((item) => (
+                        <div key={item.location} className="action-plan-item">
+                          <div className="action-plan-top">
+                            <strong>{item.location}</strong>
+                            <span className={`risk-pill ${item.urgency === "Immediate" ? "high" : item.urgency === "Near-term" ? "medium" : "lower"}`}>
+                              {item.urgency}
+                            </span>
+                          </div>
+                          <p>{item.task}</p>
                         </div>
                       ))}
                     </div>
