@@ -19,6 +19,11 @@ import LoadingPanel from "./LoadingPanel";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
 
+const WATCHLIST_STORAGE_KEY = "nyc-safety-watchlist";
+const WATCHLIST_STATUS_VALUES = ["investigate", "monitor", "escalate"] as const;
+
+type WatchlistStatus = "investigate" | "monitor" | "escalate";
+
 function App() {
   const [records, setRecords] = useState<CollisionRecord[] | null>(null);
   const [filteredRecords, setFilteredRecords] = useState<CollisionRecord[]>([]);
@@ -27,7 +32,28 @@ function App() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cleanup, setCleanup] = useState<CleanupResult | null>(null);
-  const [watchlist, setWatchlist] = useState<Record<string, "investigate" | "monitor" | "escalate">>({});
+  const [watchlist, setWatchlist] = useState<Record<string, WatchlistStatus>>(() => {
+    if (typeof window === "undefined") {
+      return {};
+    }
+
+    try {
+      const stored = window.localStorage.getItem(WATCHLIST_STORAGE_KEY);
+      if (!stored) {
+        return {};
+      }
+
+      const parsed = JSON.parse(stored) as Record<string, unknown>;
+      return Object.entries(parsed).reduce<Record<string, WatchlistStatus>>((acc, [key, value]) => {
+        if (typeof value === "string" && WATCHLIST_STATUS_VALUES.includes(value as WatchlistStatus)) {
+          acc[key] = value as WatchlistStatus;
+        }
+        return acc;
+      }, {});
+    } catch {
+      return {};
+    }
+  });
 
   const loadRecords = async () => {
     setStatus("loading");
@@ -103,6 +129,14 @@ function App() {
     [locationSummaries, watchlist]
   );
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(watchlist));
+    } catch {
+      // Ignore storage failures in restricted browser contexts.
+    }
+  }, [watchlist]);
+
   const toggleWatchlistLocation = (location: LocationRiskSummary) => {
     setWatchlist((current) => {
       const next = { ...current };
@@ -115,7 +149,7 @@ function App() {
     });
   };
 
-  const updateWatchlistStatus = (locationKey: string, nextStatus: "investigate" | "monitor" | "escalate") => {
+  const updateWatchlistStatus = (locationKey: string, nextStatus: WatchlistStatus) => {
     setWatchlist((current) => ({
       ...current,
       [locationKey]: nextStatus,
