@@ -29,10 +29,12 @@ export type LocationRiskSummary = {
   priorityCategory: "high" | "medium" | "lower";
   urgencyLabel: "Immediate" | "Near-term" | "Monitor";
   topContributingFactors: string[];
+  riskDrivers: string[];
   datePatterns: string[];
   investigationSignals: string[];
   riskNarrative: string;
   actionRecommendation: string;
+  recommendedIntervention: string;
   peerComparison: string;
   boroughAverageCrashes: number;
   corridorContext: string;
@@ -100,10 +102,12 @@ export function buildLocationRiskSummary(
         priorityCategory: "lower",
         urgencyLabel: "Monitor",
         topContributingFactors: contributingFactors,
+        riskDrivers: [],
         datePatterns: [record.crashDate],
         investigationSignals: [],
         riskNarrative: "",
         actionRecommendation: "Monitor pattern and review nearby crash history.",
+        recommendedIntervention: "Continue monitoring and compare with nearby corridors before a major intervention.",
         peerComparison: "",
         boroughAverageCrashes: 0,
         corridorContext: "",
@@ -155,6 +159,7 @@ export function buildLocationRiskSummary(
       item.urgencyLabel = "Monitor";
     }
     item.topContributingFactors = Array.from(new Set(item.topContributingFactors)).slice(0, 3);
+    item.riskDrivers = deriveRiskDrivers(item.topContributingFactors, item.totalCrashes, item.totalInjuries, item.totalFatalities);
     item.datePatterns = summarizeDatePatterns(item.datePatterns);
 
     const primaryFactor = item.topContributingFactors[0] ?? "No dominant factor identified";
@@ -197,6 +202,8 @@ export function buildLocationRiskSummary(
     } else {
       item.actionRecommendation = "Continue monitoring this location and compare against nearby corridors for repeat patterns before allocating a larger intervention.";
     }
+
+    item.recommendedIntervention = buildRecommendedIntervention(item.riskDrivers, item.priorityCategory);
   });
 
   summaries.sort((a, b) => b.prioritizationScore - a.prioritizationScore);
@@ -220,6 +227,63 @@ function summarizeDatePatterns(dates: string[]) {
 
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   return sorted.slice(0, 2).map(([month, count]) => `${month}: ${count} crashes`);
+}
+
+function deriveRiskDrivers(
+  factors: string[],
+  totalCrashes: number,
+  totalInjuries: number,
+  totalFatalities: number
+): string[] {
+  const derived = new Set<string>();
+
+  for (const factor of factors) {
+    const normalized = factor.toLowerCase();
+
+    if (normalized.includes("yield") || normalized.includes("stop") || normalized.includes("signal")) {
+      derived.add("Intersection control and compliance");
+    }
+    if (normalized.includes("speed") || normalized.includes("following") || normalized.includes("traffic") || normalized.includes("lane")) {
+      derived.add("Speed and lane discipline");
+    }
+    if (normalized.includes("pedestrian") || normalized.includes("bicycl") || normalized.includes("cross")) {
+      derived.add("Pedestrian and bicyclist exposure");
+    }
+    if (normalized.includes("distraction") || normalized.includes("fatigue") || normalized.includes("attention")) {
+      derived.add("Driver attention and distraction");
+    }
+  }
+
+  if (totalFatalities > 0 || totalInjuries > 0) {
+    derived.add("Severe injury pattern");
+  }
+
+  if (totalCrashes >= 5) {
+    derived.add("Repeat crash concentration");
+  }
+
+  return Array.from(derived).slice(0, 4);
+}
+
+function buildRecommendedIntervention(riskDrivers: string[], priorityCategory: "high" | "medium" | "lower") {
+  if (riskDrivers.includes("Pedestrian and bicyclist exposure")) {
+    return "Implement pedestrian crossing upgrades, visibility improvements, and targeted enforcement focused on yielding and compliance.";
+  }
+  if (riskDrivers.includes("Intersection control and compliance")) {
+    return "Review signal timing, stop control visibility, and right-of-way compliance with a targeted intersection safety study.";
+  }
+  if (riskDrivers.includes("Speed and lane discipline")) {
+    return "Add speed management measures and lane discipline enforcement to reduce repeat high-speed conflict events.";
+  }
+  if (riskDrivers.includes("Driver attention and distraction")) {
+    return "Pair focused enforcement with driver education and targeted messaging at the most frequent conflict points.";
+  }
+
+  if (priorityCategory === "high") {
+    return "Prioritize a corridor-level engineering review and operational changes at this location.";
+  }
+
+  return "Continue monitoring and compare this location with nearby hotspots before funding a broader redesign.";
 }
 
 function deriveCorridorKey(locationLabel: string) {

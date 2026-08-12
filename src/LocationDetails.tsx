@@ -51,6 +51,11 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
       </div>
 
       <div className="detail-row detail-factors">
+        <span>Risk drivers</span>
+        <strong>{location.riskDrivers.join(", ") || "Not available"}</strong>
+      </div>
+
+      <div className="detail-row detail-factors">
         <span>Common contributing factors</span>
         <strong>{location.topContributingFactors.join(", ") || "Not available"}</strong>
       </div>
@@ -76,6 +81,11 @@ export default function LocationDetails({ location }: { location: LocationRiskSu
       <div className="detail-row detail-factors">
         <span>Recommended action</span>
         <strong>{location.actionRecommendation}</strong>
+      </div>
+
+      <div className="detail-row detail-factors">
+        <span>Recommended intervention</span>
+        <strong>{location.recommendedIntervention}</strong>
       </div>
 
       <p className="method-note">
