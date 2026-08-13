@@ -35,6 +35,7 @@ function App() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cleanup, setCleanup] = useState<CleanupResult | null>(null);
+  const [activeDrawerTab, setActiveDrawerTab] = useState<"locations" | "watchlist" | "briefing" | "actions">("locations");
   const [watchlist, setWatchlist] = useState<Record<string, WatchlistStatus>>(() => {
     if (typeof window === "undefined") {
       return {};
@@ -220,217 +221,301 @@ function App() {
         disabled={status === "loading"}
       />
 
+      {/* Summary Cards - Always visible at top */}
+      {status === "success" && (
+        <SummaryCards
+          totalCrashes={totalCrashes}
+          totalInjuries={totalInjuries}
+          totalFatalities={totalFatalities}
+          highPriorityLocations={highPriorityLocations}
+        />
+      )}
+
       <main className="main-grid">
-        <section className="summary-panel">
-          {status === "loading" && <LoadingPanel />}
-          {status === "error" && <ErrorState message={errorMessage} onRetry={loadRecords} />}
-          {status === "success" && (
-            <>
-              <SummaryCards
-                totalCrashes={totalCrashes}
-                totalInjuries={totalInjuries}
-                totalFatalities={totalFatalities}
-                highPriorityLocations={highPriorityLocations}
-              />
-              {locationSummaries.length === 0 ? (
-                <EmptyState
-                  title="No crash locations match the selected filters"
-                  description="Try expanding the date range or removing borough filters."
-                />
-              ) : (
-                <>
-                  <section className="brief-panel">
-                    <h2>Operational briefing</h2>
-                    <p className="brief-headline">{operationalBrief.headline}</p>
-                    <ul className="brief-takeaways">
-                      {operationalBrief.keyTakeaways.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                    <div className="brief-actions">
-                      {operationalBrief.recommendedActions.map((action) => (
-                        <div key={action} className="brief-action-item">
-                          {action}
+        {status === "loading" && <LoadingPanel />}
+        {status === "error" && <ErrorState message={errorMessage} onRetry={loadRecords} />}
+        {status === "success" && (
+          <>
+            {/* Content Row: Hotspots Panel + Map */}
+            <div className="content-row">
+              {/* Compact Hotspots Panel */}
+              <section className="hotspots-panel">
+                <h2>Priority hotspots</h2>
+                {locationSummaries.length === 0 ? (
+                  <EmptyState
+                    title="No crash locations match the selected filters"
+                    description="Try expanding the date range or removing borough filters."
+                  />
+                ) : (
+                  <div className="hotspots-list">
+                    {priorityQueue.map((location) => (
+                      <button
+                        key={location.locationKey}
+                        type="button"
+                        className={
+                          location.locationKey === selectedLocation?.locationKey
+                            ? "hotspot-card selected"
+                            : "hotspot-card"
+                        }
+                        onClick={() => setSelectedLocation(location)}
+                      >
+                        <div className="hotspot-header">
+                          <span className="location-rank">#{location.rank}</span>
+                          <strong>{location.locationLabel}</strong>
                         </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="action-plan-panel">
-                    <h2>Field action plan</h2>
-                    <p className="action-plan-headline">{actionPlan.headline}</p>
-                    <div className="action-plan-list">
-                      {actionPlan.actions.map((item) => (
-                        <div key={item.location} className="action-plan-item">
-                          <div className="action-plan-top">
-                            <strong>{item.location}</strong>
-                            <span className={`risk-pill ${item.urgency === "Immediate" ? "high" : item.urgency === "Near-term" ? "medium" : "lower"}`}>
-                              {item.urgency}
-                            </span>
-                          </div>
-                          <p>{item.task}</p>
+                        <div className="hotspot-metrics">
+                          <span>{location.totalCrashes} crashes</span>
+                          <span>{location.totalInjuries} injuries</span>
+                          <span
+                            className={`risk-pill ${location.priorityCategory}`}
+                          >
+                            {location.urgencyLabel}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </section>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-                  <section className="dispatch-panel">
-                    <h2>Dispatch board</h2>
-                    <p className="dispatch-headline">{dispatchBoard.headline}</p>
-                    <div className="dispatch-list">
-                      {dispatchBoard.assignments.map((assignment) => (
-                        <div key={assignment.location} className="dispatch-item">
-                          <div className="dispatch-row">
-                            <strong>{assignment.location}</strong>
-                            <span className={`risk-pill ${assignment.priority === "Immediate" ? "high" : assignment.priority === "Near-term" ? "medium" : "lower"}`}>
-                              {assignment.priority}
-                            </span>
-                          </div>
-                          <div className="dispatch-meta">
-                            <span>{assignment.crew}</span>
-                            <span>{assignment.window}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
+              {/* Map Panel */}
+              <section className="map-panel">
+                {canShowMap ? (
+                  <MapView
+                    locations={locationSummaries}
+                    selectedLocationKey={selectedLocation?.locationKey ?? null}
+                    onLocationSelect={(key) => {
+                      const found = locationSummaries.find((item) => item.locationKey === key);
+                      if (found) setSelectedLocation(found);
+                    }}
+                  />
+                ) : (
+                  <div className="map-placeholder">
+                    {status === "loading"
+                      ? "Map will appear once NYC collision data has been loaded."
+                      : locationSummaries.length === 0
+                      ? "No usable location data is available yet."
+                      : "Map is unavailable."}
+                  </div>
+                )}
+              </section>
+            </div>
 
-                  <section className="priority-queue">
-                    <h2>Priority investigation queue</h2>
-                    <div className="queue-list">
-                      {priorityQueue.map((location) => (
-                        <button
-                          key={location.locationKey}
-                          type="button"
-                          className={
-                            location.locationKey === selectedLocation?.locationKey ? "queue-item selected" : "queue-item"
-                          }
-                          onClick={() => setSelectedLocation(location)}
-                        >
-                          <div className="queue-header">
-                            <span className="location-rank">#{location.rank}</span>
-                            <strong>{location.locationLabel}</strong>
-                          </div>
-                          <div className="queue-action-label">Recommended focus</div>
-                          <p>{location.recommendedIntervention}</p>
-                          <div className="queue-meta">
-                            <span className={`risk-pill ${location.priorityCategory}`}>
-                              {location.urgencyLabel}
-                            </span>
-                            <span>{location.totalCrashes} crashes</span>
-                            <span>{location.totalInjuries} injuries</span>
-                          </div>
-                          <div className="tag-row">
-                            {location.riskDrivers.map((driver) => (
-                              <span key={driver} className="detail-tag">
-                                {driver}
-                              </span>
-                            ))}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="watchlist-panel">
-                    <div className="watchlist-header">
-                      <h2>Watchlist</h2>
-                      <div className="watchlist-actions">
-                        <span>{watchlistLocations.length} tracked</span>
-                        <button type="button" className="clear-watchlist-button" onClick={clearWatchlist}>
-                          Clear all
-                        </button>
+            {/* Secondary Drawer with Tabs */}
+            {locationSummaries.length > 0 && (
+              <section className="secondary-drawer">
+                <div className="drawer-tabs">
+                  <button
+                    className={`drawer-tab ${activeDrawerTab === "watchlist" ? "active" : ""}`}
+                    onClick={() => setActiveDrawerTab("watchlist")}
+                  >
+                    Watchlist
+                  </button>
+                  <button
+                    className={`drawer-tab ${activeDrawerTab === "locations" ? "active" : ""}`}
+                    onClick={() => setActiveDrawerTab("locations")}
+                  >
+                    All Locations
+                  </button>
+                  <button
+                    className={`drawer-tab ${activeDrawerTab === "briefing" ? "active" : ""}`}
+                    onClick={() => setActiveDrawerTab("briefing")}
+                  >
+                    Briefing
+                  </button>
+                  <button
+                    className={`drawer-tab ${activeDrawerTab === "actions" ? "active" : ""}`}
+                    onClick={() => setActiveDrawerTab("actions")}
+                  >
+                    Actions
+                  </button>
+                </div>
+                <div className="drawer-content">
+                  {/* Watchlist Tab */}
+                  {activeDrawerTab === "watchlist" && (
+                    <>
+                      <h3>Watchlist</h3>
+                      <div className="status-summary">
+                        <span className="status-chip investigate">{watchlistCounts.investigate} investigate</span>
+                        <span className="status-chip monitor">{watchlistCounts.monitor} monitor</span>
+                        <span className="status-chip escalate">{watchlistCounts.escalate} escalate</span>
                       </div>
-                    </div>
-                    <div className="status-summary">
-                      <span className="status-chip investigate">{watchlistCounts.investigate} investigate</span>
-                      <span className="status-chip monitor">{watchlistCounts.monitor} monitor</span>
-                      <span className="status-chip escalate">{watchlistCounts.escalate} escalate</span>
-                    </div>
-                    {watchlistLocations.length === 0 ? (
-                      <p className="section-copy">Add a hotspot to keep it in your investigation queue.</p>
-                    ) : (
-                      <div className="watchlist-items">
-                        {watchlistLocations.map((location) => (
-                          <div key={location.locationKey} className="watchlist-item">
-                            <button type="button" className="watchlist-name" onClick={() => setSelectedLocation(location)}>
-                              {location.locationLabel}
-                            </button>
-                            <select
-                              value={watchlist[location.locationKey]}
-                              onChange={(event) =>
-                                updateWatchlistStatus(location.locationKey, event.target.value as "investigate" | "monitor" | "escalate")
-                              }
-                            >
-                              <option value="investigate">Investigate</option>
-                              <option value="monitor">Monitor</option>
-                              <option value="escalate">Escalate</option>
-                            </select>
+                      {watchlistLocations.length === 0 ? (
+                        <p className="section-copy">Add a hotspot to keep it in your investigation queue.</p>
+                      ) : (
+                        <div className="watchlist-items">
+                          {watchlistLocations.map((location) => (
+                            <div key={location.locationKey} className="watchlist-item">
+                              <button
+                                type="button"
+                                className="watchlist-name"
+                                onClick={() => setSelectedLocation(location)}
+                              >
+                                {location.locationLabel}
+                              </button>
+                              <select
+                                value={watchlist[location.locationKey]}
+                                onChange={(event) =>
+                                  updateWatchlistStatus(
+                                    location.locationKey,
+                                    event.target.value as "investigate" | "monitor" | "escalate"
+                                  )
+                                }
+                              >
+                                <option value="investigate">Investigate</option>
+                                <option value="monitor">Monitor</option>
+                                <option value="escalate">Escalate</option>
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="clear-watchlist-button"
+                        onClick={clearWatchlist}
+                        style={{ marginTop: "12px" }}
+                      >
+                        Clear all
+                      </button>
+                    </>
+                  )}
+
+                  {/* All Locations Tab */}
+                  {activeDrawerTab === "locations" && (
+                    <>
+                      <h3>Top crash locations</h3>
+                      <p className="section-copy">
+                        Locations are ranked using an MVP prioritization score that balances crash frequency
+                        with injury and fatality severity.
+                      </p>
+                      <ol className="location-items">
+                        {locationSummaries.slice(0, 8).map((location) => (
+                          <li
+                            key={location.locationKey}
+                            className={
+                              location.locationKey === selectedLocation?.locationKey
+                                ? "location-item selected"
+                                : "location-item"
+                            }
+                            onClick={() => setSelectedLocation(location)}
+                          >
+                            <div>
+                              <span className="location-rank">#{location.rank}</span>
+                              <strong>{location.locationLabel}</strong>
+                              <span className="location-borough">{location.borough}</span>
+                            </div>
+                            <div className="location-metrics">
+                              <span>{location.totalCrashes} crashes</span>
+                              <span>{location.totalInjuries} injuries</span>
+                              <span>{location.totalFatalities} fatalities</span>
+                            </div>
+                            <span className={`risk-pill ${location.priorityCategory}`}>
+                              {location.priorityCategory === "high"
+                                ? "High priority"
+                                : location.priorityCategory === "medium"
+                                ? "Medium priority"
+                                : "Lower priority"}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </>
+                  )}
+
+                  {/* Briefing Tab */}
+                  {activeDrawerTab === "briefing" && (
+                    <>
+                      <h3>Operational briefing</h3>
+                      <p className="brief-headline">{operationalBrief.headline}</p>
+                      <ul className="brief-takeaways">
+                        {operationalBrief.keyTakeaways.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <div className="brief-actions">
+                        {operationalBrief.recommendedActions.map((action) => (
+                          <div key={action} className="brief-action-item">
+                            {action}
                           </div>
                         ))}
                       </div>
-                    )}
-                  </section>
+                    </>
+                  )}
 
-                  <section className="location-list">
-                    <h2>Top crash locations</h2>
-                    <p className="section-copy">
-                      Locations are ranked using an MVP prioritization score that balances crash frequency
-                      with injury and fatality severity.
-                    </p>
-                    <ol className="location-items">
-                      {locationSummaries.slice(0, 8).map((location) => (
-                        <li
-                          key={location.locationKey}
-                          className={
-                            location.locationKey === selectedLocation?.locationKey ? "location-item selected" : "location-item"
-                          }
-                          onClick={() => setSelectedLocation(location)}
-                        >
-                          <div>
-                            <span className="location-rank">#{location.rank}</span>
-                            <strong>{location.locationLabel}</strong>
-                            <span className="location-borough">{location.borough}</span>
+                  {/* Actions Tab (Action Plan + Dispatch Board) */}
+                  {activeDrawerTab === "actions" && (
+                    <>
+                      <h3>Field action plan</h3>
+                      <p className="action-plan-headline">{actionPlan.headline}</p>
+                      <div className="action-plan-list">
+                        {actionPlan.actions.map((item) => (
+                          <div key={item.location} className="action-plan-item">
+                            <div className="action-plan-top">
+                              <strong>{item.location}</strong>
+                              <span
+                                className={`risk-pill ${
+                                  item.urgency === "Immediate"
+                                    ? "high"
+                                    : item.urgency === "Near-term"
+                                    ? "medium"
+                                    : "lower"
+                                }`}
+                              >
+                                {item.urgency}
+                              </span>
+                            </div>
+                            <p>{item.task}</p>
                           </div>
-                          <div className="location-metrics">
-                            <span>{location.totalCrashes} crashes</span>
-                            <span>{location.totalInjuries} injuries</span>
-                            <span>{location.totalFatalities} fatalities</span>
+                        ))}
+                      </div>
+
+                      <h3 style={{ marginTop: "20px" }}>Dispatch board</h3>
+                      <p className="dispatch-headline">{dispatchBoard.headline}</p>
+                      <div className="dispatch-list">
+                        {dispatchBoard.assignments.map((assignment) => (
+                          <div key={assignment.location} className="dispatch-item">
+                            <div className="dispatch-row">
+                              <strong>{assignment.location}</strong>
+                              <span
+                                className={`risk-pill ${
+                                  assignment.priority === "Immediate"
+                                    ? "high"
+                                    : assignment.priority === "Near-term"
+                                    ? "medium"
+                                    : "lower"
+                                }`}
+                              >
+                                {assignment.priority}
+                              </span>
+                            </div>
+                            <div className="dispatch-meta">
+                              <span>{assignment.crew}</span>
+                              <span>{assignment.window}</span>
+                            </div>
                           </div>
-                          <span className={`risk-pill ${location.priorityCategory}`}>
-                            {location.priorityCategory === "high" ? "High priority" : location.priorityCategory === "medium" ? "Medium priority" : "Lower priority"}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </section>
-                </>
-              )}
-            </>
-          )}
-        </section>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </main>
 
-        <section className="map-panel">
-          {status === "success" && canShowMap ? (
-            <MapView
-              locations={locationSummaries}
-              selectedLocationKey={selectedLocation?.locationKey ?? null}
-              onLocationSelect={(key) => {
-                const found = locationSummaries.find((item) => item.locationKey === key);
-                if (found) setSelectedLocation(found);
-              }}
-            />
-          ) : (
-            <div className="map-placeholder">
-              {status === "loading"
-                ? "Map will appear once NYC collision data has been loaded."
-                : locationSummaries.length === 0
-                ? "No usable location data is available yet."
-                : "Map is unavailable."}
-            </div>
-          )}
-
-          {status === "success" && selectedLocation && (
+      {/* Location Details Modal Overlay */}
+      {status === "success" && selectedLocation && (
+        <div className="details-modal-overlay" onClick={() => setSelectedLocation(null)}>
+          <div className="details-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal-close-button"
+              onClick={() => setSelectedLocation(null)}
+              aria-label="Close details"
+            >
+              ✕
+            </button>
             <LocationDetails
               location={selectedLocation}
               isInWatchlist={Boolean(watchlist[selectedLocation.locationKey])}
@@ -438,9 +523,9 @@ function App() {
               watchlistStatus={watchlist[selectedLocation.locationKey] ?? "investigate"}
               onStatusChange={(nextStatus) => updateWatchlistStatus(selectedLocation.locationKey, nextStatus)}
             />
-          )}
-        </section>
-      </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
