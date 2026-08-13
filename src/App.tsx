@@ -291,9 +291,7 @@ function App() {
                   />
                 ) : (
                   <div className="map-placeholder">
-                    {status === "loading"
-                      ? "Map will appear once NYC collision data has been loaded."
-                      : locationSummaries.length === 0
+                    {locationSummaries.length === 0
                       ? "No usable location data is available yet."
                       : "Map is unavailable."}
                   </div>
